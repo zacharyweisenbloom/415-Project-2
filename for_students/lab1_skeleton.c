@@ -4,6 +4,7 @@
  *  Created on: Nov 25, 2020
  *      Author: Guan, Xin, Monil
  */
+//shave off new line charecters 
 
 #include <stdio.h>
 #include <stdlib.h>

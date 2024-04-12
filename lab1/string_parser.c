@@ -53,11 +53,12 @@ command_line str_filler (char* buf, const char* delim)
 	*			fill command_list array with tokens, and fill last spot with NULL.
 	*	#6. return the variable.
 	*/
+
 	command_line fill;
 	fill.num_token = count_token(buf, delim);
 	int i = 0;
 
-	fill.command_list = (char**) malloc(sizeof(char*) * (fill.num_token + 1));
+	fill.command_list = (char**) malloc(sizeof(char*) * (fill.num_token+1));
 	fill.command_list[fill.num_token] = NULL;
 	char* save_ptr;
     char* token = strtok_r(buf, delim, &save_ptr);
