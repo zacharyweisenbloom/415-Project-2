@@ -36,10 +36,10 @@ void makeDir(char *dirName){
 if (mkdir(dirName, 0755) == -1){
     switch (errno) {
         case EACCES:
-            write(STDOUT_FILENO, "Permission denied\n", 18);
+            write(STDOUT_FILENO, "Permission denied\n", strlen("Permission denied\n"));
             break;
         case EEXIST:
-            write(STDOUT_FILENO, "Directory already exists\n", 25);
+            write(STDOUT_FILENO, "Directory already exists\n", strlen("Directory already exists\n"));
             break;
         case ENOENT:
             write(STDOUT_FILENO, "A component of the path does not exist\n", 40);
@@ -77,11 +77,8 @@ void copyFile(char *sourcePath, char *destinationPath){
         strcat(Dest, basename(sourcePath));
         Dest[strlen(sourcePath) + strlen(destinationPath)+1] = '\0';
     }else{
-        printf("not_dir");
         Dest = (char*)malloc(sizeof(char)*(strlen(destinationPath))+1);
-
         strcpy(Dest, destinationPath);
-        fprintf(stderr, "[%s]\n", Dest);
         Dest[strlen(destinationPath)] = '\0';
         
        //Dest = strdup(destinationPath);
@@ -99,7 +96,7 @@ void copyFile(char *sourcePath, char *destinationPath){
     
     while((num_read = read(src_fd, buffer, sizeof(buffer))) > 0){
         if(write(dst_fd, buffer, num_read) != num_read){
-            //perror("Error writing to destination file");
+            //"Error writing to destination file"
             break;
         }
     } 
@@ -139,6 +136,7 @@ void displayFile(char *filename){
     if(write(STDOUT_FILENO, buffer, num_read) != num_read){
         //perror("Error writing to destination file");
         close(src_fd);
+        
         return;
     }
 } 
