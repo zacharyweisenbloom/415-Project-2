@@ -4,7 +4,7 @@
  *  Created on: Nov 25, 2020
  *      Author: Guan, Xin, Monil
  */
-
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +44,6 @@ int main(int argc, char const *argv[])
 	command_line small_token_buffer;
 
 	int line_num = 0;
-
 	//loop until the file is over
 	while (getline(&line_buf, &len, stream) != -1)
 	{		
@@ -134,9 +133,11 @@ int main(int argc, char const *argv[])
 				}
 			}
 			
+
 			//free smaller tokens and reset variable
 			free_command_line(&small_token_buffer);
 			memset (&small_token_buffer, 0, 0);
+
 		}
 
 		if (stream == stdin) {

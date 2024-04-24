@@ -35,14 +35,8 @@ void showCurrentDir(){
 void makeDir(char *dirName){
 if (mkdir(dirName, 0755) == -1){
     switch (errno) {
-        case EACCES:
-            write(STDOUT_FILENO, "Permission denied\n", strlen("Permission denied\n"));
-            break;
         case EEXIST:
             write(STDOUT_FILENO, "Directory already exists\n", strlen("Directory already exists\n"));
-            break;
-        case ENOENT:
-            write(STDOUT_FILENO, "A component of the path does not exist\n", 40);
             break;
         default:
             write(STDOUT_FILENO, "An error occurred\n", 18);
@@ -80,9 +74,6 @@ void copyFile(char *sourcePath, char *destinationPath){
         Dest = (char*)malloc(sizeof(char)*(strlen(destinationPath))+1);
         strcpy(Dest, destinationPath);
         Dest[strlen(destinationPath)] = '\0';
-        
-       //Dest = strdup(destinationPath);
-       
     }
     
     dst_fd = open(Dest, O_WRONLY | O_CREAT | O_TRUNC, 0666);

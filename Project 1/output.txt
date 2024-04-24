@@ -1,0 +1,18 @@
+/home/users/zweisenb/415/Project 1
+Directory already exists
+. .. 
+/home/users/zweisenb/415/Project 1/test
+/home/users/zweisenb/415/Project 1/test
+Error opening source file 
+. .. 
+File not found 
+Error opening source file 
+/home/users/zweisenb/415/Project 1/test
+. .. 
+File not found 
+. .. 
+/home/users/zweisenb/415/Project 1
+. .. Makefile here abcdefgh bob test.txt george example-output.txt string_parser.c command.o test test_cat_file.txt test_script.sh abc abcde abc.txt random pasidjfapsoidfjpoasidjfpoaisjdfpoaisjdpfoiajspdofijaposdifjaposdijf d bobing output.txt aspodfijaposidfjpoasidjfpoaisjdfpoasijdf main.c pseudo-shell command.h ge you odsafj a aposidfjpoasidjfpoapapafpa3jaosjqh apsoidfjpoasidjfpoasijdfpoasijdfpoiasjdfpoiajsdfpoiasjpdofiaspdofji command.c string_parser.o lab1_input.txt paosidfj string_parser.h main.o 
+Error invalid command
+
+The function took 0.000865 seconds to execute.
