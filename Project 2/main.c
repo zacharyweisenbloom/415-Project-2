@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
 			//smaller token is seperated by " "(space bar)
 			small_token_buffer = str_filler (large_token_buffer.command_list[i], " ");
 			char * things[] = {"./iobound", "-seconds", "10", NULL};
-			execvp(things[0], things);
+		
 			//iterate through each smaller token to print
 			if(execvp(small_token_buffer.command_list[0], small_token_buffer.command_list) == -1){
 				printf("fail!");
