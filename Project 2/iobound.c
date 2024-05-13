@@ -8,8 +8,8 @@
 int main(int argc, char **argv) {
     int i, j, now, start, condition = 1, seconds = 5;
     double duration;
-    printf("here!");
     FILE *outfile = fopen("/dev/null", "w");
+    printf("here!");
 
 /*
  * process environment variable and command line arguments
