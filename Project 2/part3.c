@@ -33,7 +33,7 @@ int count_lines(const char *filename) {
     fclose(file);
     return lines;
 }
-int current_process = 0;
+int current_process;
 int commands;
 pid_t *pid_array;
 
@@ -49,7 +49,6 @@ void waitForSignal(int signum) {
 
 void sendSignalToAll(pid_t *p_array, int n, int signal) {
 	for (int i = 0; i < n; i++) {
-		//printf("sending!\n");
         kill(p_array[i], signal);
     }
 }
@@ -61,11 +60,12 @@ void next_process(){
     while(kill(pid_array[current_process],SIGCONT) == -1){
         current_process = (current_process+1)%commands;
     }
-    printf("starting process %d\n", pid_array[current_process]);
+    printf("Scheduling process %d\n", pid_array[current_process]);
     alarm(1);
 }
 int main(int argc, char const *argv[])
 {
+	
 	//checking for command line argument
 	size_t len = 128;
     char* line_buf = malloc(len);
@@ -92,6 +92,7 @@ int main(int argc, char const *argv[])
 	command_line large_token_buffer;
 	command_line small_token_buffer;
 	commands = count_lines(argv[2]);
+	//current_process = commands;
 	int line_num = 0;
 	int numChildren = 0;
 
@@ -118,8 +119,10 @@ int main(int argc, char const *argv[])
 			}
 			if (pid_array[line_num] == 0)
 			{
-				waitForSignal(SIGUSR1);
+				//waitForSignal(SIGALARM);
 				//printf("process running!\n");
+				//kill(pid_array[line_num], SIGSTOP);
+				raise(SIGSTOP);
 				if (execvp(small_token_buffer.command_list[0], small_token_buffer.command_list) == -1)
 				{
 					printf("Error, invalid command.\n");
@@ -140,13 +143,8 @@ int main(int argc, char const *argv[])
 		free_command_line (&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}
-	sleep(1);
-	sendSignalToAll(pid_array, numChildren, SIGUSR1);
-	sendSignalToAll(pid_array, numChildren, SIGSTOP);
-	//sendSignalToAll(pid_array, numChildren, SIGCONT);
 
-    //want to do round robin here
-    
+	current_process = commands-1; 
     signal(SIGALRM, next_process);
     alarm(1);
 

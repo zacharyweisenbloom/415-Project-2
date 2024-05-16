@@ -97,15 +97,15 @@ void sendSignalToAll(pid_t *p_array, int n, int signal) {
 }
 
 void next_process(){
+	display_info();
     kill(pid_array[current_process], SIGSTOP);
     current_process = (current_process+1)%commands;
     
     while(kill(pid_array[current_process],SIGCONT) == -1){
         current_process = (current_process+1)%commands;
     }
-	display_info(pid_array[current_process]);
-    printf("starting process %d\n", pid_array[current_process]);
-    alarm(1);
+	
+	alarm(1);
 }
 int main(int argc, char const *argv[])
 {
@@ -161,8 +161,9 @@ int main(int argc, char const *argv[])
 			}
 			if (pid_array[line_num] == 0)
 			{
-				waitForSignal(SIGUSR1);
+				//waitForSignal(SIGUSR1);
 				//printf("process running!\n");
+				raise(SIGSTOP);
 				if (execvp(small_token_buffer.command_list[0], small_token_buffer.command_list) == -1)
 				{
 					printf("Error, invalid command.\n");
@@ -186,13 +187,13 @@ int main(int argc, char const *argv[])
 		free_command_line(&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}
-	sleep(1);
-	sendSignalToAll(pid_array, numChildren, SIGUSR1);
-	sendSignalToAll(pid_array, numChildren, SIGSTOP);
+	//sleep(1);
+	//sendSignalToAll(pid_array, numChildren, SIGUSR1);
+	//sendSignalToAll(pid_array, numChildren, SIGSTOP);
 	//sendSignalToAll(pid_array, numChildren, SIGCONT);
 
     //want to do round robin here
-    
+    current_process = commands-1;
     signal(SIGALRM, next_process);
     alarm(1);
 
