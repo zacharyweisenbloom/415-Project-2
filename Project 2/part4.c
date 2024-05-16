@@ -53,8 +53,9 @@ void display_info(){
 		double utime, stime, time;
 		long nice;
 		long unsigned int virt;
+        command_line token_buff;
 		if (fgets(buffer, sizeof(buffer), proc_file) != NULL) {
-			command_line token_buff = str_filler(buffer, " ");
+			token_buff = str_filler(buffer, " ");
 			
 			printf("%s ", token_buff.command_list[0]);
 			/*printf("%s ", token_buff.command_list[13]);
@@ -76,6 +77,7 @@ void display_info(){
 			printf("       %lu \n", virt);
 		}
 	fclose(proc_file);
+    free_command_line(&token_buff);
 	}
 }
 void waitForSignal(int signum) {
@@ -151,11 +153,11 @@ int main(int argc, char const *argv[])
 			small_token_buffer = str_filler(large_token_buffer.command_list[0], " ");
 	
 			pid_array[line_num] = fork();
-			//if(pid_array[line_num] > 1)printf("pid_array%d\n", pid_array[line_num]);
-			//if(pid_array[line_num] == 0)printf("pid_arrayChild%d\n", pid_array[line_num]);
+
 			if (pid_array[line_num] < 0)
 			{
 				printf("Error forking!!\n");
+
 			}
 			if (pid_array[line_num] == 0)
 			{
@@ -166,19 +168,22 @@ int main(int argc, char const *argv[])
 					printf("Error, invalid command.\n");
 				}
 			//
+            free(pid_array);
+            free(line_buf);
+            free_command_line (&small_token_buffer);
+		    memset (&small_token_buffer, 0, 0);
+            free_command_line (&large_token_buffer);
+		    memset (&large_token_buffer, 0, 0);
+            fclose(stream);
 			exit(-1);
 			}
-			
 			numChildren++;
 			line_num++;
-			//printf("Child here: %d\n", numChildren);
-			//printf("%d\n", line_num);
-
-				//printf ("\t\tToken %d: %s\n", j + 1, small_token_buffer.command_list[j]);
-	
 
 		//free smaller tokens and reset variable
-		free_command_line (&large_token_buffer);
+        free_command_line (&small_token_buffer);
+		memset (&small_token_buffer, 0, 0);
+		free_command_line(&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}
 	sleep(1);
