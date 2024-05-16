@@ -37,7 +37,47 @@ int current_process = 0;
 int commands;
 pid_t *pid_array;
 
+void display_info(){
+	pid_t pid;
+	FILE* proc_file;
+	char path[1024];
+	char buffer[1024];
+	printf("PID - utime     stime       time     nice    virt mem\n");
+	for(int i =0; i<commands; i++){
+		pid = pid_array[i];
+		if(kill(pid, 0) == -1){
+			continue;
+		}
+		snprintf(path,sizeof(path), "/proc/%d/stat", pid);
+		proc_file = fopen(path, "r");
+		double utime, stime, time;
+		long nice;
+		long unsigned int virt;
+		if (fgets(buffer, sizeof(buffer), proc_file) != NULL) {
+			command_line token_buff = str_filler(buffer, " ");
+			
+			printf("%s ", token_buff.command_list[0]);
+			/*printf("%s ", token_buff.command_list[13]);
+			printf("%s ", token_buff.command_list[14]);
+			printf("%s ", token_buff.command_list[18]);
+			printf("%s ", token_buff.command_list[22]);
+			printf("\n");
+			*/
+			utime = (double)atoi(token_buff.command_list[13])/sysconf(_SC_CLK_TCK);
+			stime = (double)atoi(token_buff.command_list[14])/sysconf(_SC_CLK_TCK);
+			time = utime + stime;
+			nice = strtol(token_buff.command_list[18], NULL, 10);
+			virt = strtoul(token_buff.command_list[22], NULL, 10);
 
+			printf(" %f ", utime);
+			printf(" %f ", stime);
+			printf("   %f ", time);
+			printf("%ld", nice);
+			printf("       %lu \n", virt);
+		}
+	fclose(proc_file);
+	}
+}
 void waitForSignal(int signum) {
     sigset_t sigset;
     int sig;
@@ -61,6 +101,7 @@ void next_process(){
     while(kill(pid_array[current_process],SIGCONT) == -1){
         current_process = (current_process+1)%commands;
     }
+	display_info(pid_array[current_process]);
     printf("starting process %d\n", pid_array[current_process]);
     alarm(1);
 }
