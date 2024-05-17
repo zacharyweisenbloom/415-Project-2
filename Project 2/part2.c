@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 
 #define _GNU_SOURCE
 FILE *stream = NULL;
@@ -113,35 +114,37 @@ int main(int argc, char const *argv[])
 			//
 			exit(-1);
 			}
-			
 			numChildren++;
 			line_num++;
-			//printf("Child here: %d\n", numChildren);
-			//printf("%d\n", line_num);
-
-				//printf ("\t\tToken %d: %s\n", j + 1, small_token_buffer.command_list[j]);
-	
-
 		//free smaller tokens and reset variable
 		free_command_line (&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}
+
 	sleep(1);
 	sendSignalToAll(pid_array, numChildren, SIGUSR1);
+	sleep(1);
 	sendSignalToAll(pid_array, numChildren, SIGSTOP);
+	sleep(1);
 	sendSignalToAll(pid_array, numChildren, SIGCONT);
 	
 
-
 	int status;
-	
+	pid_t p;
     while (numChildren > 0) {
-        wait(&status); // Wait for any child to terminate
-        numChildren--;
+        p = wait(&status); 
+		if(p == -1){
+			if(errno == EINTR){
+				continue;}//specifically handle case where wait is interrupted by singal
+		}
+		if(WIFEXITED(status) > 0){
+			//printf("Process terminated by signal %d", p);
+			numChildren--;
+		}
     }
+
 	free(pid_array);
 	if(ifFile){fclose(stream);}
 	//free line buffer
 	free (line_buf);
-
 }

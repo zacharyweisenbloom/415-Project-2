@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 
 #define _GNU_SOURCE
 FILE *stream = NULL;
@@ -58,12 +59,6 @@ void display_info(){
 			token_buff = str_filler(buffer, " ");
 			
 			printf("%s ", token_buff.command_list[0]);
-			/*printf("%s ", token_buff.command_list[13]);
-			printf("%s ", token_buff.command_list[14]);
-			printf("%s ", token_buff.command_list[18]);
-			printf("%s ", token_buff.command_list[22]);
-			printf("\n");
-			*/
 			utime = (double)atoi(token_buff.command_list[13])/sysconf(_SC_CLK_TCK);
 			stime = (double)atoi(token_buff.command_list[14])/sysconf(_SC_CLK_TCK);
 			time = utime + stime;
@@ -80,6 +75,42 @@ void display_info(){
     free_command_line(&token_buff);
 	}
 }
+
+int is_read(pid_t pid){
+	
+	FILE* proc_file;
+	char path[1024];
+	char **buffer_for_output = (char**)malloc(sizeof(char*)*2);
+	char buffer[1024];
+	snprintf(path,sizeof(path), "/proc/%d/io", pid);
+	proc_file = fopen(path, "r");
+	command_line token_buff1;
+	command_line token_buff2;
+
+	for( int i = 0; i<2; i++){
+		fgets(buffer, sizeof(buffer), proc_file);
+		printf("buffer %s\n", buffer);
+		buffer_for_output[i] = strdup(buffer);
+	}
+	fclose(proc_file);
+	token_buff1 = str_filler(buffer_for_output[0], " ");
+	token_buff2 = str_filler(buffer_for_output[1], " ");
+	char* read = strdup(token_buff1.command_list[1]);
+	char* write = strdup(token_buff2.command_list[1]);
+
+	free_command_line(&token_buff1);
+	free_command_line(&token_buff2);
+
+	bool it_read = strtol(read, NULL, 10) > strtol(write,NULL, 10);
+	free(read);
+	free(write);
+	for (int i = 0; i < 2; i++) {
+		free(buffer_for_output[i]);
+	}
+free(buffer_for_output);
+	return it_read;		
+}
+
 void waitForSignal(int signum) {
     sigset_t sigset;
     int sig;
@@ -100,13 +131,25 @@ void next_process(){
 	display_info();
     kill(pid_array[current_process], SIGSTOP);
     current_process = (current_process+1)%commands;
-    
-    while(kill(pid_array[current_process],SIGCONT) == -1){
+    int count = commands;
+    while(kill(pid_array[current_process],0) == -1){
         current_process = (current_process+1)%commands;
+		if(count == 0){
+			break;
+		}
     }
-	
-	alarm(1);
+	if(is_read(pid_array[current_process])){
+		printf("is_read\n");
+		kill(pid_array[current_process],SIGCONT);
+		alarm(1);
+	}else{
+		printf("is_write\n");
+		kill(pid_array[current_process],SIGCONT);
+		alarm(2);
+	}
+
 }
+
 int main(int argc, char const *argv[])
 {
 	//checking for command line argument
@@ -142,8 +185,7 @@ int main(int argc, char const *argv[])
 	pid_array = (pid_t *) malloc(sizeof(*pid_array)*commands);
 	while (getline(&line_buf, &len, stream) != -1)
 	{		
-		
-		//printf("the line: %s\n", line_buf);
+
 		large_token_buffer = str_filler (line_buf, ";");
 		//printf(" large token %d", large_token_buffer.num_token);
 		//iterate through each large token
@@ -161,8 +203,6 @@ int main(int argc, char const *argv[])
 			}
 			if (pid_array[line_num] == 0)
 			{
-				//waitForSignal(SIGUSR1);
-				//printf("process running!\n");
 				raise(SIGSTOP);
 				if (execvp(small_token_buffer.command_list[0], small_token_buffer.command_list) == -1)
 				{
@@ -187,19 +227,27 @@ int main(int argc, char const *argv[])
 		free_command_line(&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}
-
+    //want to do round robin here
     current_process = commands-1;
     signal(SIGALRM, next_process);
     alarm(1);
 
 	int status;
+	pid_t p;
     while (numChildren > 0) {
-        wait(&status); // Wait for any child to terminate
-        numChildren--;
+        p = wait(&status); 
+		if(p == -1){
+			if(errno == EINTR){
+				continue;}//specifically handle case where wait is interrupted by singal
+		}
+		if(WIFEXITED(status) > 0){
+			//printf("Process terminated by signal %d", p);
+			numChildren--;
+		}
     }
-
 	free(pid_array);
 	if(ifFile){fclose(stream);}
 	//free line buffer
 	free (line_buf);
+
 }

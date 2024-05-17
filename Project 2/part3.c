@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 
 #define _GNU_SOURCE
 FILE *stream = NULL;
@@ -36,6 +37,7 @@ int count_lines(const char *filename) {
 int current_process;
 int commands;
 pid_t *pid_array;
+
 
 
 void waitForSignal(int signum) {
@@ -63,6 +65,15 @@ void next_process(){
     printf("Scheduling process %d\n", pid_array[current_process]);
     alarm(1);
 }
+
+void setup_signal_handler() {
+    struct sigaction sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;  // Not using SA_RESTART
+    sa.sa_handler = next_process;
+    sigaction(SIGALRM, &sa, NULL);
+}
+
 int main(int argc, char const *argv[])
 {
 	
@@ -116,28 +127,25 @@ int main(int argc, char const *argv[])
 			if (pid_array[line_num] < 0)
 			{
 				printf("Error forking!!\n");
+				exit(EXIT_FAILURE);
 			}
 			if (pid_array[line_num] == 0)
 			{
 				//waitForSignal(SIGALARM);
 				//printf("process running!\n");
-				//kill(pid_array[line_num], SIGSTOP);
+				
 				raise(SIGSTOP);
 				if (execvp(small_token_buffer.command_list[0], small_token_buffer.command_list) == -1)
 				{
 					printf("Error, invalid command.\n");
+					exit(EXIT_FAILURE);
 				}
 			//
-			exit(-1);
+			exit(EXIT_SUCCESS);
 			}
 			
 			numChildren++;
 			line_num++;
-			//printf("Child here: %d\n", numChildren);
-			//printf("%d\n", line_num);
-
-				//printf ("\t\tToken %d: %s\n", j + 1, small_token_buffer.command_list[j]);
-	
 
 		//free smaller tokens and reset variable
 		free_command_line (&large_token_buffer);
@@ -145,17 +153,25 @@ int main(int argc, char const *argv[])
 	}
 
 	current_process = commands-1; 
+	setup_signal_handler();
     signal(SIGALRM, next_process);
     alarm(1);
 
 	int status;
+	pid_t p;
     while (numChildren > 0) {
-        wait(&status); // Wait for any child to terminate
-        numChildren--;
+        p = wait(&status); 
+		if(p == -1){
+			if(errno == EINTR){
+				continue;}//specifically handle case where wait is interrupted by singal
+		}
+		if(WIFEXITED(status) > 0){
+			//printf("Process terminated by signal %d", p);
+			numChildren--;
+		}
     }
 	free(pid_array);
 	if(ifFile){fclose(stream);}
 	//free line buffer
 	free (line_buf);
-
 }

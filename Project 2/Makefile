@@ -1,4 +1,4 @@
-all : part1_m part2_m part3_m part4_m iobound cpubound
+all : part1_m part2_m part3_m part4_m part5_m iobound cpubound
 
 iobound:
 	gcc iobound.c -o iobound
@@ -30,8 +30,14 @@ part4_m: part4.o string_parser.o
 part4.o: part4.c
 	gcc -g -c part4.c
 	
+part5_m: part5.o string_parser.o
+	gcc -g -o part5_m part5.o string_parser.o
+	
+part5.o: part5.c
+	gcc -g -c part5.c
+
 string_parser.o: string_parser.c string_parser.h
 	gcc -g -c string_parser.c
 	
 clean:
-	rm -f core *.o part1_m part2_m part3_m part4_m iobound cpubound
+	rm -f core *.o part1_m part2_m part3_m part4_m part5_m iobound cpubound

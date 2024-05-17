@@ -95,7 +95,7 @@ int main(int argc, char const *argv[])
 			small_token_buffer = str_filler(large_token_buffer.command_list[0], " ");
 	
 			pid_array[line_num] = fork();
-			if(pid_array[line_num] > 1)printf("pid_array%d\n", pid_array[line_num]);
+			//if(pid_array[line_num] > 1)printf("pid_array%d\n", pid_array[line_num]);
 			//if(pid_array[line_num] == 0)printf("pid_arrayChild%d\n", pid_array[line_num]);
 			if (pid_array[line_num] < 0)
 			{
