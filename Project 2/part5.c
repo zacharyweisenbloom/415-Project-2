@@ -152,7 +152,6 @@ void next_process(){
 	}else{
 		printf("last process/n");
 		kill(pid_array[current_process],SIGCONT);
-		alarm(2);
 	}
 }
 
