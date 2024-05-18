@@ -37,6 +37,7 @@ int count_lines(const char *filename) {
 int current_process = 0;
 int commands;
 pid_t *pid_array;
+int numChildren = 0;
 
 void display_info(){
 	pid_t pid;
@@ -84,6 +85,9 @@ int is_read(pid_t pid){
 	char buffer[1024];
 	snprintf(path,sizeof(path), "/proc/%d/io", pid);
 	proc_file = fopen(path, "r");
+	if (proc_file == NULL){
+		exit(EXIT_FAILURE);
+	}
 	command_line token_buff1;
 	command_line token_buff2;
 
@@ -134,20 +138,22 @@ void next_process(){
     int count = commands;
     while(kill(pid_array[current_process],0) == -1){
         current_process = (current_process+1)%commands;
-		if(count == 0){
-			break;
-		}
     }
+	if(numChildren > 1){
 	if(is_read(pid_array[current_process])){
 		printf("is_read\n");
 		kill(pid_array[current_process],SIGCONT);
-		alarm(1);
+		alarm(2);
 	}else{
 		printf("is_write\n");
 		kill(pid_array[current_process],SIGCONT);
+		alarm(1);
+	}
+	}else{
+		printf("last process/n");
+		kill(pid_array[current_process],SIGCONT);
 		alarm(2);
 	}
-
 }
 
 int main(int argc, char const *argv[])
@@ -179,7 +185,7 @@ int main(int argc, char const *argv[])
 	command_line small_token_buffer;
 	commands = count_lines(argv[2]);
 	int line_num = 0;
-	int numChildren = 0;
+	
 
 	//loop until the file is over
 	pid_array = (pid_t *) malloc(sizeof(*pid_array)*commands);
