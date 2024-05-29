@@ -109,6 +109,13 @@ int main(int argc, char const *argv[])
 					printf("Error, invalid command.\n");
 				}
 			//
+            free(pid_array);
+            free(line_buf);
+            free_command_line (&small_token_buffer);
+		    memset (&small_token_buffer, 0, 0);
+            free_command_line (&large_token_buffer);
+		    memset (&large_token_buffer, 0, 0);
+            fclose(stream);
 			exit(-1);
 			}
 			
@@ -121,6 +128,8 @@ int main(int argc, char const *argv[])
 	
 
 		//free smaller tokens and reset variable
+		free_command_line (&small_token_buffer);
+		memset (&small_token_buffer, 0, 0);
 		free_command_line (&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}

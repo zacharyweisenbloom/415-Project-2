@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
+#include <time.h>
 
 #define _GNU_SOURCE
 FILE *stream = NULL;
@@ -34,6 +35,7 @@ int count_lines(const char *filename) {
     fclose(file);
     return lines;
 }
+
 int current_process = 0;
 int commands;
 pid_t *pid_array;
@@ -157,6 +159,8 @@ void next_process(){
 
 int main(int argc, char const *argv[])
 {
+	clock_t start_time, end_time;
+    double cpu_time_used;
 	//checking for command line argument
 	size_t len = 128;
     char* line_buf = malloc(len);
@@ -250,6 +254,9 @@ int main(int argc, char const *argv[])
 			numChildren--;
 		}
     }
+	end_time = clock();    // End timing
+    cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC;
+	printf("Program executed in %f seconds.\n", cpu_time_used);
 	free(pid_array);
 	if(ifFile){fclose(stream);}
 	//free line buffer

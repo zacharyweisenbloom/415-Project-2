@@ -111,14 +111,8 @@ int main(int argc, char const *argv[])
 	pid_array = (pid_t *) malloc(sizeof(*pid_array)*commands);
 	while (getline(&line_buf, &len, stream) != -1)
 	{		
-		
-		//printf("the line: %s\n", line_buf);
-		large_token_buffer = str_filler (line_buf, ";");
-		//printf(" large token %d", large_token_buffer.num_token);
-		//iterate through each large token
+			large_token_buffer = str_filler (line_buf, ";");
 
-			//tokenize large buffer
-			//smaller token is seperated by " "(space bar)
 			small_token_buffer = str_filler(large_token_buffer.command_list[0], " ");
 	
 			pid_array[line_num] = fork();
@@ -133,27 +127,33 @@ int main(int argc, char const *argv[])
 			{
 				//waitForSignal(SIGALARM);
 				//printf("process running!\n");
-				
 				raise(SIGSTOP);
 				if (execvp(small_token_buffer.command_list[0], small_token_buffer.command_list) == -1)
 				{
 					printf("Error, invalid command.\n");
-					exit(EXIT_FAILURE);
 				}
 			//
-			exit(EXIT_SUCCESS);
+            free(pid_array);
+            free(line_buf);
+            free_command_line (&small_token_buffer);
+		    memset (&small_token_buffer, 0, 0);
+            free_command_line (&large_token_buffer);
+		    memset (&large_token_buffer, 0, 0);
+            fclose(stream);
+			exit(-1);
 			}
 			
 			numChildren++;
 			line_num++;
 
-		//free smaller tokens and reset variable
-		free_command_line (&large_token_buffer);
+        free_command_line (&small_token_buffer);
+		memset (&small_token_buffer, 0, 0);
+		free_command_line(&large_token_buffer);
 		memset (&large_token_buffer, 0, 0);
 	}
 
 	current_process = commands-1; 
-	setup_signal_handler();
+	//setup_signal_handler();
     signal(SIGALRM, next_process);
     alarm(1);
 

@@ -14,6 +14,8 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
+#include <time.h>
 
 #define _GNU_SOURCE
 FILE *stream = NULL;
@@ -109,6 +111,9 @@ void next_process(){
 }
 int main(int argc, char const *argv[])
 {
+	clock_t start_time, end_time;
+    double cpu_time_used;
+	start_time = clock(); 
 	//checking for command line argument
 	size_t len = 128;
     char* line_buf = malloc(len);
@@ -193,11 +198,21 @@ int main(int argc, char const *argv[])
     alarm(1);
 
 	int status;
+	pid_t p;
     while (numChildren > 0) {
-        wait(&status); // Wait for any child to terminate
-        numChildren--;
+        p = wait(&status); 
+		if(p == -1){
+			if(errno == EINTR){
+				continue;}//specifically handle case where wait is interrupted by singal
+		}
+		if(WIFEXITED(status) > 0){
+			//printf("Process terminated by signal %d", p);
+			numChildren--;
+		}
     }
-
+	end_time = clock();    // End timing
+    cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC;
+	printf("Program executed in %f seconds.\n", cpu_time_used);
 	free(pid_array);
 	if(ifFile){fclose(stream);}
 	//free line buffer
