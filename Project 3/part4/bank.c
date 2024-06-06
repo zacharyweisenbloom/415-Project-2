@@ -14,12 +14,16 @@ account* shared_accounts;
 account* account_list;
 int accounts;
 size_t shm_size = 0;
-sigset_t sigset;
+
 int sig;
 pid_t pid;
 int *puddles_bool = 0;
+int *sigsent = 0;
+
 
 pthread_mutex_t account_mutex = PTHREAD_MUTEX_INITIALIZER, count_mutex = PTHREAD_MUTEX_INITIALIZER, file_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t *bank_mutex;
+
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER, cond_bank = PTHREAD_COND_INITIALIZER;
 pthread_barrier_t barrier;
 
@@ -173,6 +177,7 @@ void* process_transaction(void* args){
 
         pthread_mutex_lock(&account_mutex);
         while(is_bank){
+            printf("%ld number reached, pausing\n",pthread_self());
             pthread_cond_wait(&cond, &account_mutex); 
         }
         pthread_mutex_unlock(&account_mutex);
@@ -260,6 +265,7 @@ void* process_transaction(void* args){
     
     free(line_buf);
     fclose(stream);
+    printf("%ld is done\n",pthread_self());
 }
 
 void* update_balance(void * arg){ //critical section
@@ -273,20 +279,20 @@ void* update_balance(void * arg){ //critical section
     for(int i = 0; i<accounts; i++){
         snprintf(filename, sizeof(filename), "./output/act_%d.txt", i);
         file = fopen(filename, "w");
+        fprintf(file, "account %d:\n", i);
         fclose(file);
     }
 
     pthread_mutex_unlock(&file_mutex);
 
     while(1){
-        index_count++;
         pthread_mutex_lock(&account_mutex);
-        
         while(!is_bank){
-            
-            //printf("isbank\n");
+            printf("bank %ld is waiting, update time is %d\n",pthread_self(), index_count);
             pthread_cond_wait(&cond_bank, &account_mutex);
         }
+        index_count++;
+        printf("bank %ld signal recieved\n", pthread_self());
 
         //printf("index_count: %d", index_count);
         for(int i = 0; i<accounts; i++){
@@ -305,7 +311,7 @@ void* update_balance(void * arg){ //critical section
 
         pthread_mutex_lock(&count_mutex);
         count = 0;
-        printf("line count: %d\n", lines_processed);
+        //printf("line count: %d\n", lines_processed);
         pthread_mutex_unlock(&count_mutex);
 
         is_bank = 0;
@@ -313,33 +319,40 @@ void* update_balance(void * arg){ //critical section
         pthread_cond_broadcast(&cond);
         
         kill(pid, SIGCONT);
+        pthread_mutex_lock(bank_mutex);
+        *sigsent = 1;
+        pthread_mutex_unlock(bank_mutex);
         if(active_threads == 0){
             *puddles_bool = 2;
             break;
         }
         pthread_mutex_unlock(&account_mutex);
     }
+    printf("total updates %d\n", index_count);
+
 
     pthread_mutex_unlock(&account_mutex);
+    //printf("duck bank %ld is done\n",pthread_self());
+    
 }
 
 
 void run_puddles_bank() {
-    printf("here!\n");
+    //printf("here!\n");
     account* puddles_accounts = (account*)malloc(sizeof(account) * accounts);
 
     char filename[512];
-    FILE *file;
+    //FILE *file;
     for(int i = 0; i<accounts; i++){
         snprintf(filename, sizeof(filename), "./savings/act_%d.txt", i);
-        file = fopen(filename, "w");
+        FILE *file = fopen(filename, "w");
+        fprintf(file, "account %d:\n", i);
         fclose(file);
     }
 
     raise(SIGSTOP);
     memcpy(puddles_accounts, account_list, shm_size);
 
-    
     for (int i = 0; i < accounts; i++) {
         strcpy(puddles_accounts[i].account_number,account_list[i].account_number);
         strcpy(puddles_accounts[i].password,account_list[i].password);  
@@ -350,16 +363,21 @@ void run_puddles_bank() {
 
     int thing = 0;
         while(1){
+        if(*sigsent != 1){
+            raise(SIGSTOP);
+        }
 
-        raise(SIGSTOP);
-        thing++;
-        printf("thing %d", thing);
+        pthread_mutex_lock(bank_mutex);
+        *sigsent = 0;
+        pthread_mutex_unlock(bank_mutex);
+        //thing++;
+        //printf("thing %d", thing);
         for (int i = 0; i < accounts; i++) {
             puddles_accounts[i].balance += puddles_accounts[i].balance * puddles_accounts[i].reward_rate;
-            printf("Updated balance for account %d: %.2f\n", i, puddles_accounts[i].balance);
+            //printf("Updated balance for account %d: %.2f\n", i, puddles_accounts[i].balance);
 
             snprintf(filename, sizeof(filename), "./savings/act_%d.txt", i);
-            file = fopen(filename, "a");
+            FILE *file = fopen(filename, "a");
             fprintf(file, "Balance: %.2f\n", puddles_accounts[i].balance);
             fclose(file);
         }
@@ -369,9 +387,9 @@ void run_puddles_bank() {
         if(*puddles_bool == 2){
             break;
         }
-
     }
-    printf("this process is done");
+
+    //printf("puddles bank %ld is done\n",pthread_self());
     // Example of a function to update balances with interest
     //update_balances_with_interest(puddles_accounts, num_accounts);
     free(puddles_accounts);
@@ -387,15 +405,14 @@ int main(int argc, char const *argv[]){
     path = argv[1];
 
     
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGUSR1);
-    sigprocmask(SIG_BLOCK, &sigset, NULL);
+    
    
 
 
     command_line large_token_buffer;
     getline(&line_buf, &len, stream);
     large_token_buffer = str_filler(line_buf, " ");
+    fclose(stream);
 
     accounts = atoi(large_token_buffer.command_list[0]);
     free_command_line(&large_token_buffer);
@@ -403,6 +420,11 @@ int main(int argc, char const *argv[]){
     shm_size = accounts * sizeof(account);
     account_list = (account*)shared_malloc(shm_size);
     puddles_bool = (int*)shared_malloc(sizeof(int));
+    sigsent = (int*)shared_malloc(sizeof(int));
+    bank_mutex = (pthread_mutex_t*) shared_malloc(sizeof(pthread_mutex_t));
+
+    pthread_mutex_init(bank_mutex, NULL);
+
 
 
     //account_list = shared_accounts;
@@ -412,6 +434,7 @@ int main(int argc, char const *argv[]){
     if (pid == 0) {
         // Child process: Puddles Bank
         run_puddles_bank();
+        free(line_buf);
         exit(0);
     } 
 
@@ -432,7 +455,8 @@ int main(int argc, char const *argv[]){
 
     num_transactions = count_lines(argv[1]) - (1 + 5*accounts);
     int increment = num_transactions / NUM_WORKERS;
-    
+    stream = fopen(argv[1], "r");
+    getline(&line_buf, &len, stream);
     for(int i = 0; i<accounts; i++){
         getline(&line_buf, &len, stream);
 
@@ -456,7 +480,7 @@ int main(int argc, char const *argv[]){
         account_list[i].reward_rate = strtod(large_token_buffer.command_list[0], NULL);
         free_command_line(&large_token_buffer);
     }
-
+    fclose(stream);
     kill(pid, SIGCONT);
 
     int count = 0;
@@ -487,14 +511,17 @@ int main(int argc, char const *argv[]){
     for (int i = 0; i < accounts; i++) {
        fprintf(output_file, "%d Balance %.2f\n",i,account_list[i].balance);
     }
-    wait(NULL);
     fclose(output_file);
+    wait(NULL);
+    
     free(line_buf);
     pthread_barrier_destroy(&barrier);
     free(indices);
     munmap(account_list, shm_size);
     munmap(puddles_bool, sizeof(int));
-    fclose(stream);
+    munmap(bank_mutex, sizeof(*bank_mutex));
+    munmap(sigsent, sizeof(int));
+    
 }
 
 

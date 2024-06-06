@@ -1,10 +1,10 @@
 all: bank
 
-bank: main.o string_parser.o 
-	gcc -g -o bank main.o string_parser.o
+bank: bank.o string_parser.o 
+	gcc -g -o bank bank.o string_parser.o
 
-main.o: main.c 
-	gcc -g -c main.c
+bank.o: bank.c 
+	gcc -g -c bank.c
 string_parser.o: string_parser.c
 	gcc -g -c string_parser.c
 	
