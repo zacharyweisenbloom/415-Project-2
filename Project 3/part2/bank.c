@@ -132,9 +132,6 @@ void* process_transaction(void* args){
                 }
             }
             pthread_mutex_lock(&account_list[account1].ac_lock);
-            /*while(is_bank){
-                pthread_cond_wait(&cond, &account_list[account2].ac_lock);
-            }*/
         }
 
         if(strcmp(token_buffer.command_list[0], "T") ==0){
